@@ -1,4 +1,4 @@
-# DJANGO_ELECTRON_v1.00
+# DJANGO_ELECTRON_REACT_v1.00
   - 일단 고생해서 짠 코드니 남겨 놓기는 하겠다만, Django 백엔드에 Electron Frontend 는 별로 좋은 생각이 아닌 것 같다. 
   - 도대체 돌려야 하는 Subprocess 가 몇 개인가? 그냥 PyQT 나 PySide6 로 짜는 게 정신건강에 이롭다.
 
