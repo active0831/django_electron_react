@@ -1,0 +1,330 @@
+<script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src = "https://unpkg.com/@mui/material@5.13.7/umd/material-ui.development.js"></script>
+
+<script type="text/babel">
+    // dj-rest-auth 의 API endpoint 호출
+    const DRF_ADDRESS = "http://localhost:8000/"
+
+    function auth_checkLoginUser(setLoginState) {
+        axios      
+        .get(DRF_ADDRESS + "/users/user/") // 쿠키값은 알아서 전송됨
+        .then((response) => {
+            setLoginState(response.data.email)            
+        })
+        .catch((error) => {
+            console.log(error)
+        }
+        );
+    }
+
+    function auth_login(email, password, setErrorMsg) {    
+        // 쿠키 리셋 (혹시 만료된 쿠키값이 삭제되지 않고 남아있을 경우 에러가 발생하므로 )
+        document.cookie.split(";").forEach(
+            function(c) { document.cookie = c.replace(/^ +/, "")
+                .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); });
+
+        axios
+        .post(DRF_ADDRESS+"/users/login/",
+            {"email": email,
+            "password": password}
+        )
+        .then((response) => {
+        // 쿠키값은 알아서 브라우저에 저장될것임.
+            window.location.reload()
+        })
+        .catch((error) => {
+        console.log(error)
+            setErrorMsg("이메일 주소 와 비밀번호를 확인해주세요")
+        });
+    }
+
+    function auth_logout() {
+        axios.post(DRF_ADDRESS + "/users/logout/")
+        .then((response) => {
+            // 새로고침하여 로그인 여부 다시 체크
+            window.location.reload()
+        })
+        .catch((error) => {
+            console.log(error)
+        }
+        );
+    }
+</script>
+
+
+<script type="text/babel">
+    // app 의 API 호출
+    const APP_NAME = "app1"
+    function app_getData1List(setData1List) {
+        axios      
+        .get(DRF_ADDRESS + "/"+APP_NAME+"/data1/list/") // 쿠키값은 알아서 전송됨
+        .then((response) => {
+            setData1List(response.data)            
+        })
+        .catch((error) => {
+            console.log(error)
+        }
+        );
+    }
+
+    function app_getData1TagList(setData1TagList) {
+        axios      
+        .get(DRF_ADDRESS + "/"+APP_NAME+"/data1/tags/list/") // 쿠키값은 알아서 전송됨
+        .then((response) => {
+            setData1TagList(response.data)            
+        })
+        .catch((error) => {
+            console.log(error)
+        }
+        );
+    }
+
+    function app_createData(data_name, description, image, data_tags) {
+        axios
+        .post(DRF_ADDRESS+"/"+APP_NAME+"/data1/create/",
+            {
+            "data_name": data_name,
+            "description": description,
+            "image":image,
+            "tags":data_tags,
+            },{headers: {'Content-Type': 'multipart/form-data'}}
+        )
+        .then((response) => {
+            window.location.reload()
+        })
+        .catch((error) => {
+            console.log(error)
+        });
+    }
+
+    function app_deleteData(data_id) {
+        axios
+        .get(DRF_ADDRESS+"/"+APP_NAME+"/data1/delete/"+data_id+"/")
+        .then((response) => {
+            window.location.reload()
+        })
+        .catch((error) => {
+            console.log(error)
+        });
+    }
+
+    function app_searchData(keyword,searchTags,setDataListFunc) {
+        if (keyword == "") {
+            keyword = " "
+        }
+        axios
+        .post(DRF_ADDRESS+"/"+APP_NAME+"/data1/search/"+keyword+"/",
+            {tags:searchTags})
+        .then((response) => {
+            setDataListFunc(response.data)
+        })
+        .catch((error) => {
+            console.log(error)
+        });
+    }
+
+</script>
+
+<script type="text/babel">
+    class TestPage extends React.Component {
+        render() {
+            const tableStyle = {
+                width: '100%',
+                textAlign: 'center',
+                borderCollapse: 'collapse',
+                tableLayout: 'fixed'
+            }
+            const tdStyle = {
+                textAlign: 'center',
+                borderCollapse: 'collapse',
+                overflowWrap: 'break-word'
+            }
+
+            return (
+            <div>
+                <h2>로그인</h2>            
+                {this.state.isLoggedIn? <div>
+                    {this.state.email} 님 로그인 되었습니다. <p/>
+                    <button 
+                        onClick={() => {auth_logout()}}>Logout</button>
+                </div>:<div>
+                    메일주소 : &nbsp;
+                    <input 
+                        onChange={(e)=>{this.setState({email:e.target.value})}}
+                        value={this.state.email} /><p/>
+                    비밀번호 : &nbsp;
+                    <input type="password"
+                        onChange={(e)=>{this.setState({password:e.target.value})}}
+                        value={this.state.password} />
+                    {this.state.errormsg} <p/>
+                    <button
+                        onClick={() => {this.login()}}
+                    >로그인</button> &nbsp;
+                </div>}
+
+
+                <h2> 검색</h2>
+
+                <h5>태그</h5>
+
+                <form 
+                    onChange={(e)=>{this.toggleSearchTag(e.target.value)}}>
+                    <table><tbody><tr>
+                    {this.state.data1TagList.map((value) => {
+                        return (<td key={value}> {value} <input type='checkbox'                            
+                            checked={this.state.searchTags.includes(value)} readOnly
+                            value={value} /></td>) })}
+                        </tr></tbody></table>
+                </form>
+
+                <h5>검색어</h5>
+
+                <input
+                    onChange={(e)=>{this.setState({searchKeyword:e.target.value})}}
+                    value={this.state.searchKeyword} /> &nbsp;
+                <button
+                    onClick={() => {this.searchData()}}
+                >찾기</button> &nbsp;
+
+                <h2>데이터 목록</h2>
+                <table style={tableStyle}><tbody>
+                    <tr>
+                        <td>데이터 이름</td>
+                        <td>데이터 설명</td>
+                        <td>태그</td>
+                        <td>이미지</td>
+                        {this.state.isLoggedIn? <td>삭제</td>:null}
+                    </tr>
+
+                {Object.entries(this.state.data1List).map(([key, value]) => {                    
+                    return <tr key={key} >
+                        <td style={tdStyle}>{value.data_name}</td>
+                        <td style={tdStyle}>{value.description}</td>
+                        <td style={tdStyle}>{value.tags}</td>
+                        {value.image?<td><img width='100%' src={value.image}/></td>:<td></td>}
+                        {this.state.isLoggedIn? 
+                        <td><button 
+                                onClick={() => {app_deleteData(value.data_id)}}
+                                >삭제</button></td>:null}
+                    </tr>
+                })}</tbody></table>
+
+
+                <h2>데이터 등록</h2>
+                데이터 이름 : &nbsp;
+                <input 
+                    onChange={(e)=>{this.setState({data_name:e.target.value})}}
+                    value={this.state.data_name} /><p/>
+
+                데이터 설명 : &nbsp;
+                <input
+                    onChange={(e)=>{this.setState({description:e.target.value})}}
+                    value={this.state.description} /><p/>
+
+                이미지 파일 : &nbsp;
+                <input accept="image/*" id="data1_image" type="file" 
+                    onChange={(e)=>{this.setState({imageFile:e.target.files[0]})}}/><p/>
+            {this.state.imageFile?
+                <img width='30%' src = {URL.createObjectURL(this.state.imageFile)} />:null}<p/>                
+
+                태그 (',' 로 구분) : &nbsp;
+                <input
+                    onChange={(e)=>{this.setState({data_tags:e.target.value.split(",")})}}
+                    value={this.state.data_tags} /><p/>
+
+                <button
+                    onClick={() => {this.addNewData()}}
+                >등록</button> &nbsp;
+
+            </div>
+            );    
+        }
+
+        constructor(props) {
+        super(props);
+        this.state = {
+            isLoggedIn:false,
+            email:"",
+            password:"",
+            loginErrorMsg:"",
+
+            data1List:{},
+            data1TagList:[],
+            searchTags:[],
+            searchKeyword:"",
+
+            data_name:"",
+            description:"",
+            imageFile:"",
+            data_tags:[],
+        };
+        }
+
+        componentDidMount() {
+            auth_checkLoginUser((email)=>{
+                this.setState({isLoggedIn:true})
+                this.setState({email:email})
+            })
+            app_getData1List((data1List)=>{
+                this.setState({data1List:data1List})
+            })
+            app_getData1TagList((data1TagList)=>{
+                this.setState({data1TagList:data1TagList})
+            })
+        }
+
+        login() {
+            auth_login(this.state.email, this.state.password, 
+                        (msg)=>{this.setState({loginErrorMsg:msg})})            
+        }
+
+        toggleSearchTag(tag) {
+            if (this.state.searchTags.includes(tag)) {
+                this.setState({searchTags:this.state.searchTags.filter(
+                    (value)=>{return value!=tag})
+                },()=>{this.searchData()} )
+            } else {                
+                this.setState({searchTags:[...this.state.searchTags,tag]
+                },()=>{this.searchData()})
+            }
+            
+        }
+
+        searchData(){
+            const keyword = this.state.searchKeyword
+            const searchTags = this.state.searchTags
+            const setDataListFunc = (result)=>{this.setState({data1List:result})}
+            app_searchData(keyword,searchTags,setDataListFunc)
+        }
+
+        addNewData(){
+            const data_name = this.state.data_name
+            const description = this.state.description
+            const image = this.state.imageFile
+            const data_tags = this.state.data_tags
+            app_createData(data_name, description, image, data_tags)
+        }
+    }
+
+
+
+    ReactDOM.render(<TestPage />, document.getElementById('root'));
+</script>
+
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Django REST API 테스트 페이지</title>
+  </head>
+  <body>
+    <h1>Django REST API 테스트 페이지</h1>
+    <div id='root'></div>
+  </body>
+</html>
+
+
